@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetSupport AI - Network Technical Support Agent</title>
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* ===== CHAT CONTAINER ===== */
+        .chat-container {
+            width: 100%;
+            max-width: 480px;
+            height: 90vh;
+            max-height: 800px;
+            background: #1a1a2e;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* ===== HEADER ===== */
+        .chat-header {
+            background: linear-gradient(135deg, #16213e, #0f3460);
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+
+        .chat-header .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e94560, #0f3460);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+            flex-shrink: 0;
+            border: 2px solid rgba(233, 69, 96, 0.3);
+        }
+
+        .chat-header .header-info h1 {
+            font-size: 16px;
+            color: #fff;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .chat-header .header-info .status {
+            font-size: 12px;
+            color: #4ade80;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chat-header .header-info .status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .chat-header .header-info .subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        /* ===== MESSAGES AREA ===== */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.15);
+            scroll-behavior: smooth;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(233, 69, 96, 0.3);
+            border-radius: 10px;
+        }
+
+        /* ===== MESSAGE BUBBLES ===== */
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #e94560, #c23152);
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot {
+            background: rgba(255, 255, 255, 0.07);
+            color: #e0e0e0;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .message.bot strong {
+            color: #fff;
+        }
+
+        .message.bot .highlight-green {
+            color: #4ade80;
+            font-weight: 600;
+        }
+
+        .message.bot .highlight-yellow {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
+        .message.bot .highlight-red {
+            color: #f87171;
+            font-weight: 600;
+        }
+
+        .message.bot .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .message.bot .metric:last-child {
+            border-bottom: none;
+        }
+
+        .message.bot .metric .label {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .message.bot .metric .value {
+            font-weight: 600;
+        }
+
+        .message.bot .tip-box {
+            background: rgba(251, 191, 36, 0.1);
+            border-left: 3px solid #fbbf24;
+            padding: 10px 12px;
+            margin: 8px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+        }
+
+        .message.bot .report-box {
+            background: rgba(79, 70, 229, 0.1);
+            border-left: 3px solid #4f46e5;
+            padding: 10px 12px;
+            margin: 8px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* ===== SUGGESTION BUTTONS ===== */
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .suggestions button {
+            background: rgba(233, 69, 96, 0.15);
+            border: 1px solid rgba(233, 69, 96, 0.3);
+            color: #e94560;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .suggestions button:hover {
+            background: rgba(233, 69, 96, 0.25);
+            border-color: #e94560;
+            transform: translateY(-1px);
+        }
+
+        .suggestions button:active {
+            transform: translateY(0);
+        }
+
+        /* ===== TYPING INDICATOR ===== */
+        .typing-indicator {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.07);
+            padding: 14px 20px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .typing-indicator.active {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ===== INPUT AREA ===== */
+        .chat-input {
+            padding: 16px 20px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+        }
+
+        .chat-input .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-input input:focus {
+            border-color: #e94560;
+        }
+
+        .chat-input button {
+            background: linear-gradient(135deg, #e94560, #c23152);
+            border: none;
+            color: #fff;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .chat-input button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+        }
+
+        .chat-input button:active {
+            transform: scale(0.95);
+        }
+
+        .chat-input .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .chat-input .quick-actions button {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.6);
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: auto;
+            height: auto;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .chat-input .quick-actions button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 520px) {
+            body {
+                padding: 0;
+            }
+
+            .chat-container {
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+            }
+
+            .chat-header {
+                padding: 14px 16px;
+            }
+
+            .chat-messages {
+                padding: 14px 12px;
+            }
+
+            .message {
+                max-width: 90%;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .chat-header {
+                padding: 10px 16px;
+            }
+
+            .chat-header .avatar {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+
+            .chat-header .header-info h1 {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container" id="chatContainer">
+        <!-- HEADER -->
+        <div class="chat-header">
+            <div class="avatar">NS</div>
+            <div class="header-info">
+                <h1>NetSupport AI</h1>
+                <div class="status">Online</div>
+                <div class="subtitle">Network Technical Support Agent</div>
+            </div>
+        </div>
+
+        <!-- MESSAGES -->
+        <div class="chat-messages" id="chatMessages"></div>
+
+        <!-- TYPING INDICATOR -->
+        <div class="typing-indicator" id="typingIndicator">
+            <span></span><span></span><span></span>
+        </div>
+
+        <!-- INPUT -->
+        <div class="chat-input">
+            <div class="input-row">
+                <input type="text" id="userInput" placeholder="Type your issue here..." autofocus>
+                <button id="sendBtn" title="Send">➤</button>
+            </div>
+            <div class="quick-actions" id="quickActions">
+                <button onclick="handleQuickAction('report')">📋 View Report</button>
+                <button onclick="handleQuickAction('restart')">🔄 Start Over</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  NETSUPPORT AI - NETWORK TECHNICAL SUPPORT AGENT
+        //  Complete Chat Engine with Diagnostics & FAQ Trees
+        // ============================================================
+
+        // ----- DOM References -----
+        const messagesEl = document.getElementById('chatMessages');
+        const typingEl = document.getElementById('typingIndicator');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // ----- State -----
+        let sessionReport = {
+            issueCategory: '',
+            userResponses: [],
+            diagnostics: null,
+            tipsGiven: [],
+            startedAt: new Date().toLocaleString()
+        };
+
+        let currentStep = 'welcome'; // tracks conversation flow
+        let pendingAction = null;    // callback for user choices
+        let diagnosticRun = false;
+
+        // ============================================================
+        //  DIAGNOSTIC ENGINE (Simulated with realistic data)
+        // ============================================================
+
+        function runDiagnostics() {
+            // Simulate realistic network metrics with slight randomness
+            const latency = Math.floor(Math.random() * 80) + 10;         // 10-90 ms
+            const jitter = Math.floor(Math.random() * 12) + 1;           // 1-13 ms
+            const download = (Math.random() * 90 + 5).toFixed(1);        // 5-95 Mbps
+            const upload = (Math.random() * 35 + 2).toFixed(1);          // 2-37 Mbps
+            const signal = Math.floor(Math.random() * 35) - 85;          // -85 to -50 dBm
+            const packetLoss = (Math.random() * 4).toFixed(1);           // 0-4%
+            const connectedDevices = Math.floor(Math.random() * 8) + 2;  // 2-9 devices
+
+            let signalStrength, signalColor;
+            if (signal >= -60) { signalStrength = 'Excellent'; signalColor = 'highlight-green'; }
+            else if (signal >= -70) { signalStrength = 'Good'; signalColor = 'highlight-green'; }
+            else if (signal >= -80) { signalStrength = 'Fair'; signalColor = 'highlight-yellow'; }
+            else { signalStrength = 'Weak'; signalColor = 'highlight-red'; }
+
+            // Status evaluations
+            const latencyStatus = latency <= 50 ? { text: '✅ Excellent', color: 'highlight-green' } :
+                                 latency <= 100 ? { text: '⚠️ Moderate', color: 'highlight-yellow' } :
+                                 { text: '❌ High', color: 'highlight-red' };
+
+            const downloadStatus = parseFloat(download) >= 50 ? { text: '✅ Excellent', color: 'highlight-green' } :
+                                   parseFloat(download) >= 25 ? { text: '✅ Good', color: 'highlight-green' } :
+                                   parseFloat(download) >= 10 ? { text: '⚠️ Slow', color: 'highlight-yellow' } :
+                                   { text: '❌ Very Slow', color: 'highlight-red' };
+
+            const uploadStatus = parseFloat(upload) >= 15 ? { text: '✅ Excellent', color: 'highlight-green' } :
+                                 parseFloat(upload) >= 5 ? { text: '✅ Good', color: 'highlight-green' } :
+                                 parseFloat(upload) >= 2 ? { text: '⚠️ Below Average', color: 'highlight-yellow' } :
+                                 { text: '❌ Poor', color: 'highlight-red' };
+
+            const packetLossStatus = parseFloat(packetLoss) <= 1 ? { text: '✅ Normal', color: 'highlight-green' } :
+                                     parseFloat(packetLoss) <= 3 ? { text: '⚠️ Noticeable', color: 'highlight-yellow' } :
+                                     { text: '❌ Severe', color: 'highlight-red' };
+
+            const jitterStatus = jitter <= 10 ? { text: '✅ Stable', color: 'highlight-green' } :
+                                 jitter <= 20 ? { text: '⚠️ Unstable', color: 'highlight-yellow' } :
+                                 { text: '❌ Very Unstable', color: 'highlight-red' };
+
+            const diagnostics = {
+                latency, jitter, download, upload, signal, packetLoss, connectedDevices,
+                signalStrength, signalColor,
+                latencyStatus, downloadStatus, uploadStatus, packetLossStatus, jitterStatus
+            };
+
+            sessionReport.diagnostics = diagnostics;
+            return diagnostics;
+        }
+
+        function getTips(d) {
+            const tips = [];
+
+            if (parseFloat(d.download) < 25) {
+                tips.push('🔹 Your download speed is low. Try connecting via Ethernet cable for a more stable connection.');
+            }
+            if (parseFloat(d.upload) < 5) {
+                tips.push('🔹 Upload speed is affecting video calls. Close unnecessary background apps and limit devices using the network.');
+            }
+            if (d.latency > 50) {
+                tips.push('🔹 High latency causes lag. Close bandwidth-heavy applications (streaming, large downloads) while gaming or video conferencing.');
+            }
+            if (d.signal < -70) {
+                tips.push('🔹 WiFi signal is weak. Move closer to the router or consider a WiFi extender / mesh system.');
+            }
+            if (parseFloat(d.packetLoss) > 1) {
+                tips.push('🔹 Packet loss detected. This could be due to interference — keep the router away from microwaves, cordless phones, and thick walls.');
+            }
+            if (d.connectedDevices > 6) {
+                tips.push('🔹 Many devices connected. Too many active devices can slow down the network. Disconnect unused devices.');
+            }
+
+            // General tips
+            tips.push('💡 General Tip: Restart your router every 2-3 weeks to clear cache and improve performance.');
+            tips.push('💡 General Tip: For best WiFi performance, place the router in a central, elevated location away from metal objects.');
+            tips.push('💡 General Tip: Update your router firmware regularly for security and performance improvements.');
+            tips.push('💡 General Tip: If issues persist, contact your ISP to check for outages or line issues in your area.');
+
+            // Speed-specific tips
+            if (parseFloat(d.download) < 10) {
+                tips.push('🚀 Speed Boost Tip: Check your internet plan — you may need to upgrade for higher speeds. Also ensure no one is streaming 4K video or doing large downloads.');
+            } else if (parseFloat(d.download) >= 50) {
+                tips.push('✅ Your speed is good! For optimal gaming/streaming, use a wired connection and enable QoS (Quality of Service) on your router settings.');
+            }
+
+            sessionReport.tipsGiven = tips;
+            return tips;
+        }
+
+        function formatDiagnostics(d) {
+            return `📊 <strong>Network Diagnostics Report</strong>
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 6px 0;">
+
+        <div class="metric">
+            <span class="label">📡 Latency (Ping)</span>
+            <span class="value ${d.latencyStatus.color}">${d.latency} ms — ${d.latencyStatus.text}</span>
+        </div>
+        <div class="metric">
+            <span class="label">⬇️ Download Speed</span>
+            <span class="value ${d.downloadStatus.color}">${d.download} Mbps — ${d.downloadStatus.text}</span>
+        </div>
+        <div class="metric">
+            <span class="label">⬆️ Upload Speed</span>
+            <span class="value ${d.uploadStatus.color}">${d.upload} Mbps — ${d.uploadStatus.text}</span>
+        </div>
+        <div class="metric">
+            <span class="label">📶 WiFi Signal</span>
+            <span class="value ${d.signalColor}">${d.signal} dBm — ${d.signalStrength}</span>
+        </div>
+        <div class="metric">
+            <span class="label">📦 Packet Loss</span>
+            <span class="value ${d.packetLossStatus.color}">${d.packetLoss}% — ${d.packetLossStatus.text}</span>
+        </div>
+        <div class="metric">
+            <span class="label">⚡ Jitter</span>
+            <span class="value ${d.jitterStatus.color}">${d.jitter} ms — ${d.jitterStatus.text}</span>
+        </div>
+        <div class="metric">
+            <span class="label">📱 Connected Devices</span>
+            <span class="value">${d.connectedDevices}</span>
+        </div>`;
+        }
+
+        function formatTips(tips) {
+            let html = '<strong>💡 Tips to Improve Your Connection</strong><br><br>';
+            tips.forEach(tip => {
+                html += `<div class="tip-box">${tip}</div>`;
+            });
+            return html;
+        }
+
+        function formatReport() {
+            const r = sessionReport;
+            let html = '<strong>📋 Support Engineer Report</strong><br>';
+            html += `<div class="report-box">`;
+            html += `<b>Issue Category:</b> ${r.issueCategory || 'Not specified'}<br>`;
+            html += `<b>Time:</b> ${r.startedAt}<br>`;
+            html += `<b>User Responses:</b><br>`;
+            r.userResponses.forEach((resp, i) => {
+                html += `&nbsp;&nbsp;${i + 1}. ${resp}<br>`;
+            });
+            if (r.diagnostics) {
+                const d = r.diagnostics;
+                html += `<br><b>Diagnostics:</b><br>`;
+                html += `&nbsp;&nbsp;Latency: ${d.latency} ms<br>`;
+                html += `&nbsp;&nbsp;Download: ${d.download} Mbps<br>`;
+                html += `&nbsp;&nbsp;Upload: ${d.upload} Mbps<br>`;
+                html += `&nbsp;&nbsp;Signal: ${d.signal} dBm (${d.signalStrength})<br>`;
+                html += `&nbsp;&nbsp;Packet Loss: ${d.packetLoss}%<br>`;
+                html += `&nbsp;&nbsp;Jitter: ${d.jitter} ms<br>`;
+                html += `&nbsp;&nbsp;Connected Devices: ${d.connectedDevices}<br>`;
+            }
+            if (r.tipsGiven.length > 0) {
+                html += `<br><b>Tips Provided:</b><br>`;
+                r.tipsGiven.forEach(tip => {
+                    html += `&nbsp;&nbsp;• ${tip}<br>`;
+                });
+            }
+            html += `<br><i>--- End of Report ---</i>`;
+            html += `</div>`;
+            html += `<button onclick="copyReport()" style="background:#4f46e5;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-top:8px;font-family:inherit;">📋 Copy Report</button>`;
+            return html;
+        }
+
+        function copyReport() {
+            const r = sessionReport;
+            let text = `=== NetSupport AI - Support Engineer Report ===\n`;
+            text += `Issue Category: ${r.issueCategory || 'Not specified'}\n`;
+            text += `Time: ${r.startedAt}\n`;
+            text += `User Responses:\n`;
+            r.userResponses.forEach((resp, i) => { text += `  ${i+1}. ${resp}\n`; });
+            if (r.diagnostics) {
+                const d = r.diagnostics;
+                text += `\nDiagnostics:\n`;
+                text += `  Latency: ${d.latency} ms\n`;
+                text += `  Download: ${d.download} Mbps\n`;
+                text += `  Upload: ${d.upload} Mbps\n`;
+                text += `  Signal: ${d.signal} dBm (${d.signalStrength})\n`;
+                text += `  Packet Loss: ${d.packetLoss}%\n`;
+                text += `  Jitter: ${d.jitter} ms\n`;
+                text += `  Connected Devices: ${d.connectedDevices}\n`;
+            }
+            if (r.tipsGiven.length > 0) {
+                text += `\nTips Provided:\n`;
+                r.tipsGiven.forEach(tip => { text += `  • ${tip}\n`; });
+            }
+            text += `\n--- End of Report ---\n`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                addBotMessage('📋 Report copied to clipboard! You can paste it into your ticketing system.');
+            }).catch(() => {
+                // fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                addBotMessage('📋 Report copied to clipboard!');
+            });
+        }
+
+        // ============================================================
+        //  CHAT ENGINE
+        // ============================================================
+
+        function addMessage(text, type = 'bot', showSuggestions = null) {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.innerHTML = text;
+            messagesEl.appendChild(div);
+
+            if (showSuggestions) {
+                const suggDiv = document.createElement('div');
+                suggDiv.className = 'suggestions';
+                showSuggestions.forEach(s => {
+                    const btn = document.createElement('button');
+                    btn.textContent = s.label;
+                    btn.onclick = () => {
+                        removeSuggestions();
+                        if (s.action) s.action();
+                    };
+                    suggDiv.appendChild(btn);
+                });
+                messagesEl.appendChild(suggDiv);
+            }
+
+            scrollToBottom();
+        }
+
+        function addBotMessage(text, suggestions = null) {
+            return addMessage(text, 'bot', suggestions);
+        }
+
+        function addUserMessage(text) {
+            sessionReport.userResponses.push(text);
+            return addMessage(text, 'user');
+        }
+
+        function removeSuggestions() {
+            const existing = messagesEl.querySelectorAll('.suggestions');
+            existing.forEach(el => el.remove());
+        }
+
+        function scrollToBottom() {
+            setTimeout(() => {
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }, 50);
+        }
+
+        function showTyping(callback, delay = 1200) {
+            typingEl.classList.add('active');
+            setTimeout(() => {
+                typingEl.classList.remove('active');
+                if (callback) callback();
+            }, delay);
+        }
+
+        function clearInput() {
+            userInput.value = '';
+        }
+
+        // ============================================================
+        //  CONVERSATION FLOWS
+        // ============================================================
+
+        function handleUserInput(text) {
+            if (!text.trim()) return;
+            addUserMessage(text);
+            clearInput();
+
+            // Route based on current step
+            if (currentStep === 'awaiting_issue_detail') {
+                showTyping(() => handleIssueDetail(text));
+            } else if (currentStep === 'awaiting_device_count') {
+                showTyping(() => handleDeviceCount(text));
+            } else if (currentStep === 'awaiting_wired_wifi') {
+                showTyping(() => handleWiredWifi(text));
+            } else if (currentStep === 'awaiting_restart') {
+                showTyping(() => handleRestartResponse(text));
+            } else if (currentStep === 'awaiting_duration') {
+                showTyping(() => handleDuration(text));
+            } else {
+                // Default: try to match to a known issue
+                showTyping(() => handleGenericQuery(text));
+            }
+        }
+
+        // ---- Welcome ----
+        function sendWelcome() {
+            const suggestions = [
+                { label: '🌐 Internet Connectivity', action: () => selectIssue('internet') },
+                { label: '📶 WiFi Problems', action: () => selectIssue('wifi') },
+                { label: '🐢 Slow Internet Speed', action: () => selectIssue('speed') },
+                { label: '🔄 Frequent Disconnections', action: () => selectIssue('disconnections') },
+                { label: '⚙️ Other Issue', action: () => selectIssue('other') }
+            ];
+
+            addBotMessage(`👋 <strong>Hello! I'm NetSupport AI</strong>, your Network Technical Support Agent.
+
+        I can help you troubleshoot network issues. Please select the type of issue you're experiencing:`, suggestions);
+        }
+
+        // ---- Select Issue ----
+        function selectIssue(type) {
+            sessionReport.issueCategory = type;
+            const labels = {
+                internet: 'Internet Connectivity',
+                wifi: 'WiFi Problems',
+                speed: 'Slow Internet Speed',
+                disconnections: 'Frequent Disconnections',
+                other: 'Other Network Issue'
+            };
+            addUserMessage(labels[type]);
+
+            const questions = {
+                internet: `I'll help you with your internet connectivity issue. Let me ask a few questions:
+
+        <strong>1️⃣ Is the internet down on all your devices, or just one specific device?</strong>`,
+                wifi: `Let's troubleshoot your WiFi. First question:
+
+        <strong>1️⃣ Are you able to see available WiFi networks, or no networks appear at all?</strong>`,
+                speed: `Let's figure out what's slowing things down. Tell me:
+
+        <strong>1️⃣ Is the slowness on all websites/apps or only specific ones?</strong>`,
+                disconnections: `Frequent disconnections can be frustrating. Let's start:
+
+        <strong>1️⃣ Does this happen on all devices or just one?</strong>`,
+                other: `Please describe your issue in detail, and I'll do my best to help you troubleshoot.`
+            };
+
+            currentStep = type === 'other' ? 'awaiting_issue_detail' : 'awaiting_device_count';
+
+            if (type === 'other') {
+                showTyping(() => {
+                    addBotMessage(questions[type]);
+                });
+            } else {
+                showTyping(() => {
+                    const suggestions = [
+                        { label: '📱 All Devices', action: () => { addUserMessage('All Devices'); showTyping(() => handleDeviceCount('all')); } },
+                        { label: '💻 One Device', action: () => { addUserMessage('One Device'); showTyping(() => handleDeviceCount('one')); } }
+                    ];
+                    addBotMessage(questions[type], suggestions);
+                });
+            }
+        }
+
+        // ---- Device Count ----
+        function handleDeviceCount(answer) {
+            const isAllDevices = answer.toLowerCase().includes('all');
+            sessionReport.userResponses.push(`Affected devices: ${answer}`);
+
+            if (currentStep === 'awaiting_device_count') {
+                currentStep = 'awaiting_wired_wifi';
+            }
+
+            const suggestions = [
+                { label: '🔌 Wired (Ethernet)', action: () => { addUserMessage('Wired (Ethernet)'); showTyping(() => handleWiredWifi('wired')); } },
+                { label: '📶 WiFi', action: () => { addUserMessage('WiFi'); showTyping(() => handleWiredWifi('wifi')); } },
+                { label: '🔀 Both', action: () => { addUserMessage('Both'); showTyping(() => handleWiredWifi('both')); } }
+            ];
+
+            addBotMessage(`<strong>2️⃣ Are you using a wired (Ethernet) connection or WiFi?</strong>`, suggestions);
+        }
+
+        // ---- Wired / WiFi ----
+        function handleWiredWifi(answer) {
+            sessionReport.userResponses.push(`Connection type: ${answer}`);
+
+            if (currentStep === 'awaiting_wired_wifi') {
+                currentStep = 'awaiting_restart';
+            }
+
+            const suggestions = [
+                { label: '✅ Yes, I did', action: () => { addUserMessage('Yes, I did restart'); showTyping(() => handleRestartResponse('yes')); } },
+                { label: '❌ Not yet', action: () => { addUserMessage('Not yet'); showTyping(() => handleRestartResponse('no')); } }
+            ];
+
+            addBotMessage(`<strong>3️⃣ Have you tried restarting your router/modem yet?</strong> (Unplug it for 30 seconds, then plug it back in)`, suggestions);
+        }
+
+        // ---- Restart Response ----
+        function handleRestartResponse(answer) {
+            sessionReport.userResponses.push(`Restarted router: ${answer}`);
+
+            if (currentStep === 'awaiting_restart') {
+                currentStep = 'awaiting_duration';
+            }
+
+            const suggestions = [
+                { label: '🕐 Just started', action: () => { addUserMessage('Just started today'); showTyping(() => handleDuration('today')); } },
+                { label: '📅 A few days ago', action: () => { addUserMessage('A few days ago'); showTyping(() => handleDuration('few days')); } },
+                { label: '📆 A week or more', action: () => { addUserMessage('A week or more'); showTyping(() => handleDuration('week')); } }
+            ];
+
+            const msg = answer.toLowerCase().includes('yes') ?
+                `Great! Let me ask one more thing.` :
+                `Please try restarting your router after this chat. Now, one more question:`;
+
+            addBotMessage(`${msg}<br><br><strong>4️⃣ How long has this issue been happening?</strong>`, suggestions);
+        }
+
+        // ---- Duration ----
+        function handleDuration(answer) {
+            sessionReport.userResponses.push(`Duration: ${answer}`);
+
+            if (currentStep === 'awaiting_duration') {
+                currentStep = 'diagnostics_ready';
+            }
+
+            const msg = answer.toLowerCase().includes('today') || answer.toLowerCase().includes('few') ?
+                `I see, this is a recent issue. Let's run some diagnostics to check your connection quality.` :
+                `That's quite a while. Let's run diagnostics to see what's happening with your network.`;
+
+            const suggestions = [
+                { label: '🔍 Run Diagnostics', action: runDiagnosticsFlow }
+            ];
+
+            addBotMessage(`${msg}<br><br>I'll run a full network check now. This will test your connection speed, latency, signal strength, and more.`, suggestions);
+        }
+
+        // ---- Other Issue Detail ----
+        function handleIssueDetail(text) {
+            sessionReport.userResponses.push(`Issue description: ${text}`);
+
+            const suggestions = [
+                { label: '🔍 Run Diagnostics', action: runDiagnosticsFlow }
+            ];
+
+            addBotMessage(`Thank you for describing the issue. Let me run a full network diagnostic to check everything.`, suggestions);
+        }
+
+        // ---- Generic Query ----
+        function handleGenericQuery(text) {
+            const lower = text.toLowerCase();
+
+            if (lower.includes('speed') || lower.includes('slow') || lower.includes('fast')) {
+                selectIssue('speed');
+            } else if (lower.includes('wifi') || lower.includes('wi-fi') || lower.includes('wireless') || lower.includes('signal')) {
+                selectIssue('wifi');
+            } else if (lower.includes('disconnect') || lower.includes('drop') || lower.includes('cut')) {
+                selectIssue('disconnections');
+            } else if (lower.includes('internet') || lower.includes('connect') || lower.includes('online') || lower.includes('network')) {
+                selectIssue('internet');
+            } else {
+                showTyping(() => {
+                    const suggestions = [
+                        { label: '🌐 Internet Connectivity', action: () => selectIssue('internet') },
+                        { label: '📶 WiFi Problems', action: () => selectIssue('wifi') },
+                        { label: '🐢 Slow Internet Speed', action: () => selectIssue('speed') },
+                        { label: '🔄 Frequent Disconnections', action: () => selectIssue('disconnections') }
+                    ];
+                    addBotMessage(`I'm not sure I understood your issue. Could you please select from the common issues below, or describe your problem in more detail?`, suggestions);
+                });
+            }
+        }
+
+        // ============================================================
+        //  DIAGNOSTICS FLOW
+        // ============================================================
+
+        function runDiagnosticsFlow() {
+            diagnosticRun = true;
+            currentStep = 'diagnostics_done';
+
+            // Step 1: Starting diagnostics
+            addBotMessage(`🔍 <strong>Running Network Diagnostics...</strong><br><br>Please wait while I check your connection...`);
+
+            // Step 2: Show progress then results
+            setTimeout(() => {
+                // Show progress
+                const progressMsg = addBotMessage(`⏳ Testing latency... ✅<br>⏳ Testing speed... ✅<br>⏳ Checking signal... ✅<br>⏳ Analyzing stability... ✅`);
+
+                setTimeout(() => {
+                    // Remove progress message
+                    if (progressMsg && progressMsg.parentNode) {
+                        progressMsg.remove();
+                    }
+
+                    // Run diagnostics
+                    const d = runDiagnostics();
+                    const tips = getTips(d);
+
+                    // Format and send results
+                    const diagHtml = formatDiagnostics(d);
+                    addBotMessage(diagHtml);
+
+                    setTimeout(() => {
+                        const tipsHtml = formatTips(tips);
+                        const suggestions = [
+                            { label: '📋 View Full Report', action: showReport },
+                            { label: '🔄 Start Over', action: resetChat }
+                        ];
+                        addBotMessage(tipsHtml, suggestions);
+
+                        // Also add a transparent explanation
+                        setTimeout(() => {
+                            addBotMessage(`<strong>📖 What do these numbers mean?</strong><br><br>
+                        • <strong>Latency (Ping):</strong> The time it takes for data to travel to a server and back. Under 50ms is great for gaming/streaming.<br>
+                        • <strong>Download Speed:</strong> How fast data comes to you. 25+ Mbps is good for HD streaming. 100+ Mbps for 4K.<br>
+                        • <strong>Upload Speed:</strong> How fast you send data. 5+ Mbps is good for video calls. 10+ Mbps for streaming.<br>
+                        • <strong>Signal Strength (dBm):</strong> Closer to 0 is better. -50 dBm is excellent, -80 dBm is weak.<br>
+                        • <strong>Packet Loss:</strong> Percentage of data that doesn't reach its destination. Under 1% is normal.<br>
+                        • <strong>Jitter:</strong> Variation in ping over time. Under 10ms is stable for calls/gaming.`);
+                        }, 800);
+                    }, 600);
+                }, 1200);
+            }, 800);
+        }
+
+        // ============================================================
+        //  REPORT
+        // ============================================================
+
+        function showReport() {
+            addBotMessage(formatReport());
+        }
+
+        // ============================================================
+        //  RESET
+        // ============================================================
+
+        function resetChat() {
+            messagesEl.innerHTML = '';
+            typingEl.classList.remove('active');
+
+            sessionReport = {
+                issueCategory: '',
+                userResponses: [],
+                diagnostics: null,
+                tipsGiven: [],
+                startedAt: new Date().toLocaleString()
+            };
+            currentStep = 'welcome';
+            diagnosticRun = false;
+
+            sendWelcome();
+        }
+
+        function handleQuickAction(action) {
+            if (action === 'report') {
+                if (sessionReport.diagnostics) {
+                    showReport();
+                } else {
+                    addBotMessage(`No diagnostics have been run yet. Please describe your issue first so I can run a network check.`);
+                }
+            } else if (action === 'restart') {
+                resetChat();
+            }
+        }
+
+        // ============================================================
+        //  EVENT LISTENERS
+        // ============================================================
+
+        sendBtn.addEventListener('click', () => {
+            const text = userInput.value.trim();
+            if (text) handleUserInput(text);
+        });
+
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const text = userInput.value.trim();
+                if (text) handleUserInput(text);
+            }
+        });
+
+        // ============================================================
+        //  INITIALIZE
+        // ============================================================
+
+        // Welcome message on load
+        setTimeout(() => {
+            sendWelcome();
+        }, 500);
+    </script>
+
+</body>
+</html>
